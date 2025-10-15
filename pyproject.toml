@@ -1,0 +1,75 @@
+# ==============================================================================
+# Poetry 项目配置文件 (AI Playground)
+# ------------------------------------------------------------------------------
+# 本文件定义了项目的所有元数据、依赖项、构建系统和自定义包源。
+# 项目初期聚焦于强化学习(RL)，并为未来扩展至计算机视觉(CV)和自然语言处理(NLP)
+# 做好准备。
+# ==============================================================================
+
+[tool.poetry]
+name = "blar"
+version = "0.1.0"
+description = "测试AI相关代码。"
+authors = ["x@y.com"]
+readme = "README.md"
+packages = [{include = "blar", from = "src"}]
+
+# ==============================================================================
+# 核心依赖 (项目运行所必需的包)
+# ==============================================================================
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12" # 限制Python版本以保证环境兼容性
+
+# --- PyTorch GPU版本 (从指定的 "pytorch_cu121" 源安装) ---
+# PyTorch是所有深度学习任务的基础
+torch = {version = "^2.3.1", source = "pytorch_cu121"}
+torchvision = {version = "^0.18.1", source = "pytorch_cu121"} # 包含CV常用模型和数据集
+torchaudio = {version = "^2.3.1", source = "pytorch_cu121"}  # 音频处理
+
+# --- Hugging Face 核心生态 ---
+# 这些库提供了跨领域的模型、数据集和训练加速支持
+transformers = "^4.57.0"      # 核心库，提供Transformer模型
+accelerate = "^1.10.0"
+datasets = "^4.0.0"
+evaluate = "^0.4.6"       # HuggingFace的评估库
+bitsandbytes = "0.48.1"
+trl = "^0.23.1"
+peft = "0.17.1"
+
+# --- 通用数据科学库 ---
+scikit-learn = "^1.5.0"
+pandas = "^2.2.2"
+tensorboard = "^2.19.0"   # 更新到与新版PyTorch兼容的版本
+
+# --- 核心工具库 ---
+pyyaml = "^6.0.3"
+
+# --- 强化学习 (RL) 依赖组 ---
+[tool.poetry.group.rl.dependencies]
+gymnasium = {version = "^1.0.0a1", extras = ["all"]} # RL环境标准库 (Gym的继任者)，[all]安装所有环境包括box2d
+stable-baselines3 = {version = "^2.3.2", extras = ["extra"]}  # 一套可靠的、预先实现的RL算法，[extra]包含额外工具
+huggingface-sb3 = "^3.0"      # 将Stable-Baselines3模型与Hugging Face Hub集成的工具
+
+# ==============================================================================
+# 开发依赖 (仅在本地开发环境中使用)
+# ==============================================================================
+[tool.poetry.group.dev.dependencies]
+jupyterlab = "^4.2.3"     # 交互式开发环境
+notebook = "^7.2.1"       # 经典的Jupyter Notebook
+ruff = "^0.4.10"          # 高性能的代码检查和格式化工具
+pytest = "^8.2.2"         # 代码测试框架
+matplotlib = "^3.10.6"
+seaborn = "^0.13.2"
+pre-commit = "^3.7.1"     # Git钩子管理工具，用于自动化代码检查
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ==============================================================================
+# 自定义包源 (用于安装PyTorch GPU版本)
+# ==============================================================================
+[[tool.poetry.source]]
+name = "pytorch_cu121"
+url = "https://download.pytorch.org/whl/cu121"
+priority = "explicit"
