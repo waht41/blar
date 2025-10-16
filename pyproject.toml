@@ -46,7 +46,8 @@ pyyaml = "^6.0.3"
 
 # --- 强化学习 (RL) 依赖组 ---
 [tool.poetry.group.rl.dependencies]
-gymnasium = {version = "^1.0.0a1", extras = ["all"]} # RL环境标准库 (Gym的继任者)，[all]安装所有环境包括box2d
+gymnasium = {version = "^1.2.1", extras = ["all", "accept-rom-license"]} # RL环境标准库 (Gym的继任者)
+atari-py = "^0.2.9"
 stable-baselines3 = {version = "^2.3.2", extras = ["extra"]}  # 一套可靠的、预先实现的RL算法，[extra]包含额外工具
 huggingface-sb3 = "^3.0"      # 将Stable-Baselines3模型与Hugging Face Hub集成的工具
 

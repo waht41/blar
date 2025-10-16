@@ -1,39 +1,48 @@
 import gymnasium as gym
+import ale_py
+
+
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.env_util import make_atari_env
+from stable_baselines3.common.vec_env import VecFrameStack
 import os
-import time
 
 from src.callbacks import VisualizationCallback
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
 
 
 def main():
-    """主函数：训练LunarLander PPO模型"""
+    """主函数：训练Atari Breakout PPO模型"""
     # --- 1. 解析命令行参数和设置日志目录 ---
     args, log_dir, model_path = setup_training_args_and_logs(
-        game_name="LunarLander",
-        model_name="lunar_lander_model"
+        game_name="AtariBreakout",
+        model_name="atari_breakout_model"
     )
+    gym.register_envs(ale_py)
     
-    print_training_header("LunarLander")
+    print_training_header("Atari Breakout")
     
     # --- 2. 创建环境 ---
     print("📦 正在创建训练环境...")
     # 训练环境，使用并行化加速
-    train_env = make_vec_env("LunarLander-v3", n_envs=16)
-    print(f"✅ 训练环境创建完成，使用 {16} 个并行环境")
+    # make_atari_env 会自动处理大部分预处理工作
+    train_env = make_atari_env('ALE/Breakout-v5', n_envs=4, seed=0)
+    # VecFrameStack 将连续的4帧图像堆叠起来，让智能体能感知到运动方向
+    train_env = VecFrameStack(train_env, n_stack=4)
+    print(f"✅ 训练环境创建完成，使用 {4} 个并行环境")
     
     # 单独创建一个用于可视化的环境
-    eval_env = gym.make("LunarLander-v3", render_mode="human")
+    eval_env = make_atari_env('ALE/Breakout-v5', n_envs=1, seed=1)  # 使用不同的seed避免和训练环境完全一样
+    eval_env = VecFrameStack(eval_env, n_stack=4)
+    # eval_env = gym.make('ALE/Breakout-v5', render_mode='human')
+    # eval_env = VecFrameStack(eval_env, n_stack=4)
     print("✅ 可视化环境创建完成")
 
     # --- 3. 实例化回调函数 ---
     print("🎯 设置可视化回调函数...")
-    # 设置每 20,000 步可视化一次
-    vis_callback = VisualizationCallback(eval_env, eval_freq=20000)
-    print("✅ 可视化回调函数设置完成，每20000步展示一次效果")
+    # 设置每 50,000 步可视化一次（Atari游戏训练时间较长）
+    vis_callback = VisualizationCallback(eval_env, eval_freq=50000)
+    print("✅ 可视化回调函数设置完成，每50000步展示一次效果")
 
     # --- 4. 创建或加载 PPO 模型 ---
     if args.resume:
@@ -47,8 +56,9 @@ def main():
         print("📊 将继续之前的训练进度")
     else:
         print("🆕 正在创建新的PPO模型...")
+        # 使用 CnnPolicy 创建 PPO 模型，注意这里的策略变成了 "CnnPolicy"
         model = PPO(
-            "MlpPolicy",
+            "CnnPolicy",
             train_env,
             verbose=1,
             tensorboard_log=log_dir,
@@ -61,8 +71,9 @@ def main():
     print("=" * 60)
     
     # 在 learn() 方法中传入 callback
+    # Atari 游戏通常需要更长的训练时间，例如几百万步
     model.learn(
-        total_timesteps=200_000,
+        total_timesteps=1_000_000,
         tb_log_name="PPO_with_vis",
         callback=vis_callback
     )
@@ -84,4 +95,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
