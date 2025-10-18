@@ -20,7 +20,7 @@ wrappers:
 
 # 训练配置
 training:
-  total_timesteps: 10000  # 总训练步数
+  total_timesteps: 30000000  # 总训练步数
   eval_freq: 50000  # 评估频率
   verbose: 1  # 详细输出级别
 
@@ -50,6 +50,11 @@ callbacks:
   performance:
     enabled: true  # 是否启用性能监控回调
     verbose: 1  # 性能监控详细输出级别
+  model_save:
+    enabled: true  # 是否启用模型保存回调
+    save_freq: 10000000  # 模型保存频率，默认1千万步
+    name_prefix: "atari_breakout_checkpoint"  # 模型文件名前缀
+    verbose: 1  # 模型保存详细输出级别
 
 # 日志配置
 logging:

@@ -18,7 +18,7 @@ from stable_baselines3.common.atari_wrappers import (
     WarpFrame,
 )
 
-from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm
+from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm, ModelSaveCallback
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
 ale_py # 引入环境，用来让import不被ide自动删除
 
@@ -186,6 +186,17 @@ def main():
         )
         callbacks_list.append(performance_callback)
         print("✅ 性能监控回调已启用")
+    
+    # 模型保存回调
+    if callback_config['model_save']['enabled']:
+        model_save_callback = ModelSaveCallback(
+            save_freq=callback_config['model_save']['save_freq'],
+            save_path=model_save_dir,  # 使用之前创建的模型保存目录
+            name_prefix=callback_config['model_save']['name_prefix'],
+            verbose=callback_config['model_save']['verbose']
+        )
+        callbacks_list.append(model_save_callback)
+        print("✅ 模型保存回调已启用")
     
     # 组合多个回调函数
     if callbacks_list:

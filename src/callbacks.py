@@ -1,8 +1,14 @@
+import os
 import time
+from datetime import datetime
 from typing import Union
+
+import gymnasium as gym
+import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import VecEnv
-import gymnasium as gym
+from tqdm.auto import trange
+
 
 class VisualizationCallback(BaseCallback):
     def __init__(
@@ -62,12 +68,6 @@ class VisualizationCallback(BaseCallback):
                 print(f"--- 可视化结束 ({status}, 时长: {total_time:.1f}s, 步数: {step_count}) ---\n")
 
         return True
-
-
-import time
-import numpy as np
-from tqdm.auto import trange
-from stable_baselines3.common.callbacks import BaseCallback
 
 
 class PerformanceCallbackWithTqdm(BaseCallback):
@@ -184,3 +184,49 @@ class PerformanceCallbackWithTqdm(BaseCallback):
             self.pbar = None
         if self.verbose > 0:
             print("--- TQDM 性能监控已结束 ---")
+
+
+class ModelSaveCallback(BaseCallback):
+    """
+    定期保存模型的回调函数。
+    
+    每隔指定的步数自动保存模型，防止训练中断导致模型丢失。
+    
+    :param save_freq: (int) 保存频率，每隔多少步保存一次模型
+    :param save_path: (str) 模型保存路径
+    :param name_prefix: (str) 模型文件名前缀
+    :param verbose: (int) 日志级别
+    """
+    
+    def __init__(self, save_freq: int, save_path: str, name_prefix: str = "model", verbose: int = 1):
+        super(ModelSaveCallback, self).__init__(verbose)
+        self.save_freq = save_freq
+        self.save_path = save_path
+        self.name_prefix = name_prefix
+        
+        # 确保保存目录存在
+        os.makedirs(self.save_path, exist_ok=True)
+        
+        if self.verbose > 0:
+            print(f"✅ 模型保存回调已初始化")
+            print(f"   - 保存频率: 每 {self.save_freq:,} 步")
+            print(f"   - 保存路径: {self.save_path}")
+            print(f"   - 文件名前缀: {self.name_prefix}")
+    
+    def _on_step(self) -> bool:
+        """在每一步后检查是否需要保存模型"""
+        if self.num_timesteps % self.save_freq == 0 and self.num_timesteps > 0:
+            # 生成带时间戳的模型文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            model_filename = f"{self.name_prefix}_step_{self.num_timesteps}_{timestamp}.zip"
+            model_path = os.path.join(self.save_path, model_filename)
+            
+            # 保存模型
+            self.model.save(model_path)
+            
+            if self.verbose > 0:
+                print(f"💾 模型已保存: {model_path}")
+                print(f"   - 当前步数: {self.num_timesteps:,}")
+                print(f"   - 下次保存: 第 {self.num_timesteps + self.save_freq:,} 步")
+        
+        return True
