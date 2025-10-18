@@ -1,16 +1,14 @@
-import gymnasium as gym
-# ale_py 只需要被 import 一次，让 gym 能够发现 Atari 环境即可
-import ale_py
-
+import ale_py # ale_py 需要被 import 一次，让 gym 能够发现 Atari 环境
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_atari_env
 from stable_baselines3.common.vec_env import VecFrameStack
+from stable_baselines3.common.callbacks import CallbackList
 import os
 from typing import Callable  # 导入 Callable 用于定义学习率调度
 
-from src.callbacks import VisualizationCallback
+from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
-
+ale_py # 引入环境，用来让import不被ide自动删除
 
 def linear_schedule(initial_value: float) -> Callable[[float], float]:
     """
@@ -55,10 +53,14 @@ def main():
     print("✅ 可视化环境创建完成")
 
     # --- 3. 实例化回调函数 ---
-    print("🎯 设置可视化回调函数...")
+    print("🎯 设置回调函数...")
     # 由于总步数增加，可以适当增加回调频率
     vis_callback = VisualizationCallback(eval_env, eval_freq=50000)  # eval_freq 是基于单个环境的步数
-    print("✅ 可视化回调函数设置完成")
+    performance_callback = PerformanceCallbackWithTqdm(verbose=1)
+    
+    # 组合多个回调函数
+    callbacks = CallbackList([vis_callback, performance_callback])
+    print("✅ 回调函数设置完成 (可视化 + 性能监控)")
 
     # --- 4. 定义超参数并创建或加载 PPO 模型 ---
 
@@ -66,8 +68,8 @@ def main():
     # 参考了 Stable Baselines3 Zoo 和相关论文的推荐值
     learning_rate = 2.5e-4
     ppo_params = {
-        'n_steps': 1024,  # 增加每次更新收集的样本数，以获得更稳定的梯度估计
-        'batch_size': 256,  # 增加 mini-batch 的大小
+        'n_steps': 2048,  # 增加每次更新收集的样本数，以获得更稳定的梯度估计
+        'batch_size': 512,  # 增加 mini-batch 的大小
         'n_epochs': 4,  # 减少 epoch 数量，防止在当前数据上过拟合
         'gamma': 0.99,  # 折扣因子
         'gae_lambda': 0.95,  # GAE-Lambda 参数
@@ -118,12 +120,12 @@ def main():
 
     # 关键优化：增加总训练步数。Atari游戏需要大量样本来学习
     # 100万步对于Atari来说仅仅是开始，通常需要1000万步或更多
-    TOTAL_TIMESTEPS = 1_000_000
+    TOTAL_TIMESTEPS = 3_000_000
 
     model.learn(
         total_timesteps=TOTAL_TIMESTEPS,
         tb_log_name="PPO_with_vis",
-        callback=vis_callback
+        callback=callbacks
     )
 
     print_training_footer(log_dir)
