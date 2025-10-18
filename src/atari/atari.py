@@ -1,10 +1,20 @@
 import ale_py # ale_py 需要被 import 一次，让 gym 能够发现 Atari 环境
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_atari_env
-from stable_baselines3.common.vec_env import VecFrameStack
+from stable_baselines3.common.vec_env import VecFrameStack, SubprocVecEnv
 from stable_baselines3.common.callbacks import CallbackList
+from stable_baselines3.common.monitor import Monitor
 import os
 from typing import Callable  # 导入 Callable 用于定义学习率调度
+import gymnasium as gym
+from stable_baselines3.common.atari_wrappers import (
+    ClipRewardEnv,
+    EpisodicLifeEnv,
+    FireResetEnv,
+    MaxAndSkipEnv,
+    NoopResetEnv,
+    WarpFrame,
+)
 
 from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
@@ -26,6 +36,28 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
 
     return func
 
+def make_single_atari_env(env_id: str, seed: int, **kwargs) -> gym.Env:
+    """
+    为 Atari 创建一个经过标准预处理封装的单个环境。
+    这个版本包含了 Monitor wrapper 用于日志记录。
+    """
+    env = gym.make(env_id, **kwargs)
+    env.action_space.seed(seed)
+
+    # 关键：在应用其他 Wrapper 之前或之后（通常是较早）添加 Monitor
+    # Monitor 需要在 EpisodicLifeEnv 之前，以正确记录每个"生命"的信息
+    env = Monitor(env)
+
+    env = NoopResetEnv(env, noop_max=30)
+    env = MaxAndSkipEnv(env, skip=4)
+    env = EpisodicLifeEnv(env)
+    if "FIRE" in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
+    env = WarpFrame(env, width=84, height=84)
+    env = ClipRewardEnv(env)
+
+    env.reset(seed=seed)
+    return env
 
 def main():
     """主函数：训练Atari Breakout PPO模型"""
@@ -43,7 +75,8 @@ def main():
     print("📦 正在创建训练环境...")
     # 使用 make_atari_env 会自动应用一系列关键的 Wrapper，例如帧跳过(Frame Skipping)
     n_envs = 16
-    train_env = make_atari_env('ALE/Breakout-v5', n_envs=n_envs, seed=0)
+    env_fns = [lambda: make_single_atari_env('ALE/Breakout-v5', seed=i) for i in range(n_envs)]
+    train_env = SubprocVecEnv(env_fns)
     # VecFrameStack 将连续的4帧图像堆叠起来，让智能体能感知到运动方向
     train_env = VecFrameStack(train_env, n_stack=4)
     print(f"✅ 训练环境创建完成，使用 {n_envs} 个并行环境")
