@@ -1,0 +1,57 @@
+# ==============================================================================
+# Atari Breakout 训练配置文件
+# ==============================================================================
+# 本文件包含了训练Atari Breakout游戏的所有配置参数
+# 修改此文件中的参数即可调整训练行为，无需修改代码
+
+# 环境配置
+environment:
+  game_name: "AtariBreakout"
+  env_id: "ALE/Breakout-v5"
+  n_envs: 15  # 并行训练环境数量
+  eval_n_envs: 1  # 评估环境数量
+  seed: 1  # 随机种子
+
+# 环境包装器配置
+wrappers:
+  noop_max: 30  # NoopResetEnv的最大随机操作数
+  skip: 4  # MaxAndSkipEnv的跳帧数
+  frame_size: 84  # WarpFrame的帧大小 (84x84)
+
+# 训练配置
+training:
+  total_timesteps: 3000000  # 总训练步数
+  eval_freq: 50000  # 评估频率
+  verbose: 1  # 详细输出级别
+
+# PPO算法超参数
+ppo:
+  n_steps: 2048  # 每次更新收集的样本数
+  batch_size: 512  # mini-batch大小
+  n_epochs: 4  # 每次更新的epoch数
+  gamma: 0.99  # 折扣因子
+  gae_lambda: 0.95  # GAE-Lambda参数
+  clip_range: 0.1  # PPO裁剪范围
+  ent_coef: 0.01  # 熵系数
+  vf_coef: 0.5  # 价值函数系数
+  learning_rate: 2.5e-4  # 初始学习率
+
+# 模型配置
+model:
+  policy: "CnnPolicy"  # 策略网络类型
+  device: "auto"  # 设备选择
+  tensorboard_log: true  # 是否启用TensorBoard日志
+
+# 回调函数配置
+callbacks:
+  visualization:
+    enabled: true  # 是否启用可视化回调
+    eval_freq: 50000  # 可视化评估频率
+  performance:
+    enabled: true  # 是否启用性能监控回调
+    verbose: 1  # 性能监控详细输出级别
+
+# 日志配置
+logging:
+  tb_log_name: "PPO_with_vis"  # TensorBoard日志名称
+  log_config: true  # 是否将配置信息写入日志
