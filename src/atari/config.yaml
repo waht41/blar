@@ -20,7 +20,7 @@ wrappers:
 
 # 训练配置
 training:
-  total_timesteps: 3000000  # 总训练步数
+  total_timesteps: 10000  # 总训练步数
   eval_freq: 50000  # 评估频率
   verbose: 1  # 详细输出级别
 
@@ -55,3 +55,9 @@ callbacks:
 logging:
   tb_log_name: "PPO_with_vis"  # TensorBoard日志名称
   log_config: true  # 是否将配置信息写入日志
+
+# 模型保存配置
+model_save:
+  add_timestamp: true  # 是否在模型文件名中添加时间戳
+  timestamp_format: "%Y%m%d_%H%M%S"  # 时间戳格式
+  model_prefix: "atari_breakout_model"  # 模型文件名前缀

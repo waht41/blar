@@ -6,6 +6,7 @@ from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.monitor import Monitor
 import os
 import yaml
+from datetime import datetime
 from typing import Callable  # 导入 Callable 用于定义学习率调度
 import gymnasium as gym
 from stable_baselines3.common.atari_wrappers import (
@@ -108,6 +109,26 @@ def main():
         game_name=config['environment']['game_name'],
         model_name="atari_breakout_model"
     )
+    
+    # 创建基于tb_log_name的模型保存目录
+    model_save_config = config.get('model_save', {})
+
+    # 在log_dir下创建tb_log_name子目录
+    model_save_dir = os.path.join(log_dir)
+    os.makedirs(model_save_dir, exist_ok=True)
+    
+    # 生成模型文件名
+    model_prefix = model_save_config.get('model_prefix', 'atari_breakout_model')
+    if model_save_config.get('add_timestamp', True):
+        timestamp_format = model_save_config.get('timestamp_format', '%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime(timestamp_format)
+        model_filename = f"{model_prefix}_{timestamp}.zip"
+    else:
+        model_filename = f"{model_prefix}.zip"
+    
+    model_path = os.path.join(model_save_dir, model_filename)
+    
+    print(f"📁 模型将保存到: {model_path}")
     
     # 将配置信息写入日志
     if config.get('logging', {}).get('log_config', True):
