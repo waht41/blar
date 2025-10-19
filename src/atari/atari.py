@@ -18,8 +18,11 @@ from stable_baselines3.common.atari_wrappers import (
     WarpFrame,
 )
 
+from src.anaylyze.custom_PPO import CustomPPO
+from src.anaylyze.profiling_subproc_vec import ProfilingSubprocVecEnv
 from src.buffer import RolloutGPUBuffer
 from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm, ModelSaveCallback
+from src.shard_memory_vec import SharedMemoryProfilingVecEnv
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
 ale_py # 引入环境，用来让import不被ide自动删除
 
@@ -160,7 +163,7 @@ def main():
         env_id,
         n_envs=n_envs,
         seed=seed,
-        vec_env_cls=SubprocVecEnv  # 强制使用子进程
+        vec_env_cls=SharedMemoryProfilingVecEnv  # 强制使用子进程
     )
     # VecFrameStack 将连续的4帧图像堆叠起来，让智能体能感知到运动方向
     train_env = VecFrameStack(train_env, n_stack=4)
@@ -229,7 +232,7 @@ def main():
         'clip_range': ppo_config['clip_range'],  # 减小 clip_range，限制策略更新幅度，提升稳定性
         'ent_coef': ppo_config['ent_coef'],  # 熵系数，鼓励探索
         'vf_coef': ppo_config['vf_coef'],  # 价值函数系数
-        'learning_rate': linear_schedule(learning_rate),  # 使用线性衰减的学习率，从 2.5e-4 降到 0
+        'learning_rate': learning_rate,  # 使用线性衰减的学习率，从 2.5e-4 降到 0
     }
 
     if args.resume:
