@@ -18,6 +18,7 @@ from stable_baselines3.common.atari_wrappers import (
     WarpFrame,
 )
 
+from src.buffer import RolloutGPUBuffer
 from src.callbacks import VisualizationCallback, PerformanceCallbackWithTqdm, ModelSaveCallback
 from src.utils.training_utils import setup_training_args_and_logs, print_training_header, print_training_footer
 ale_py # 引入环境，用来让import不被ide自动删除
@@ -149,12 +150,18 @@ def main():
     eval_n_envs = env_config['eval_n_envs']
     seed = env_config['seed']
     
-    env_fns = [lambda i=i: make_single_atari_env(env_id, seed=i, 
-                                               noop_max=wrapper_config['noop_max'],
-                                               skip=wrapper_config['skip'],
-                                               frame_size=wrapper_config['frame_size']) 
-              for i in range(n_envs)]
-    train_env = SubprocVecEnv(env_fns)
+    # env_fns = [lambda i=i: make_single_atari_env(env_id, seed=i,
+    #                                            noop_max=wrapper_config['noop_max'],
+    #                                            skip=wrapper_config['skip'],
+    #                                            frame_size=wrapper_config['frame_size'])
+    #           for i in range(n_envs)]
+    # train_env = SubprocVecEnv(env_fns)
+    train_env = make_atari_env(
+        env_id,
+        n_envs=n_envs,
+        seed=seed,
+        vec_env_cls=SubprocVecEnv  # 强制使用子进程
+    )
     # VecFrameStack 将连续的4帧图像堆叠起来，让智能体能感知到运动方向
     train_env = VecFrameStack(train_env, n_stack=4)
     print(f"✅ 训练环境创建完成，使用 {n_envs} 个并行环境")
@@ -248,6 +255,7 @@ def main():
             verbose=training_config['verbose'],
             tensorboard_log=log_dir if model_config['tensorboard_log'] else None,
             device=model_config['device'],
+            rollout_buffer_class = RolloutGPUBuffer,
             **ppo_params  # 使用 ** 解包字典，传入所有优化后的超参数
         )
         print("✅ 新PPO模型创建完成")
