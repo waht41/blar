@@ -147,6 +147,7 @@ class CustomPPO(PPO):
         if env_profiling_data:
             # 计算各项指标的平均值
             avg_ipc = np.mean([d["ipc_duration"] for d in env_profiling_data])
+            avg_main_receive = np.mean([d.get("main_process_receive_duration", 0) for d in env_profiling_data])
             avg_stack = np.mean([d["stack_duration"] for d in env_profiling_data])
             avg_worker = np.mean([d["avg_worker_time"] for d in env_profiling_data])
             total_avg_step_wait = avg_ipc + avg_stack
@@ -155,7 +156,9 @@ class CustomPPO(PPO):
                 f"  - Environment Interaction (Total): {total_env_step_time:.4f}s ({total_env_step_time / total_rollout_time:.1%})")
             print(f"    └── Breakdown (Avg. per step):")
             print(f"        ├── Total Main Process Wait:   {total_avg_step_wait:.4f}s")
-            print(f"        │   ├── IPC & Unpickling:      {avg_ipc:.4f}s ({avg_ipc / total_avg_step_wait:.1%})")
+            print(f"        │   ├── Actual IPC Transfer:   {avg_ipc:.4f}s ({avg_ipc / total_avg_step_wait:.1%})")
+            print(f"        │   │   ├── Worker→Main:       {avg_ipc:.4f}s")
+            print(f"        │   │   └── Main Receive Only: {avg_main_receive:.4f}s")
             print(f"        │   └── Data Stacking:         {avg_stack:.4f}s ({avg_stack / total_avg_step_wait:.1%})")
             print(f"        └── Avg. Worker env.step():    {avg_worker:.4f}s")
         else:
